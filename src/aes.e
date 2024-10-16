@@ -62,8 +62,32 @@ feature -- Encryption Operations
 
 	ecb_encrypt (a_buffer: ARRAY [NATURAL_8])
 			-- Encrypt the buffer using ECB mode
+		require
+			a_buffer_not_void: a_buffer /= Void
+			a_buffer_correct_size: a_buffer.count \\ aes_blocklen = 0
+		local
+			i: INTEGER
+			current_block: ARRAY [NATURAL_8]
 		do
-				-- Implement ECB encryption
+			from
+				i := 1
+			until
+				i > a_buffer.count
+			loop
+				-- Extract the current block
+				current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
+				current_block.rebase (1)
+
+				-- Encrypt the block
+				cipher (current_block)
+
+				-- Copy the encrypted block back to the buffer
+				a_buffer.subcopy (current_block, 1, aes_blocklen, i)
+
+				i := i + aes_blocklen
+			end
+		ensure
+			buffer_length_unchanged: a_buffer.count = old a_buffer.count
 		end
 
 	cbc_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
