@@ -66,48 +66,48 @@ feature -- Encryption Operations
 				-- Implement ECB encryption
 		end
 
-cbc_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
-            -- Encrypt the buffer using CBC mode
-        require
-            buffer_not_void: a_buffer /= Void
-            buffer_size_multiple_of_block_length: a_buffer.count \\ aes_blocklen = 0
-        local
-            i: INTEGER
-            l_iv: ARRAY [NATURAL_8]
-            current_block: ARRAY [NATURAL_8]
-        do
-            create l_iv.make_filled (0, 1, aes_blocklen)
-            l_iv.copy (iv)
+	cbc_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
+			-- Encrypt the buffer using CBC mode
+		require
+			buffer_not_void: a_buffer /= Void
+			buffer_size_multiple_of_block_length: a_buffer.count \\ aes_blocklen = 0
+		local
+			i: INTEGER
+			l_iv: ARRAY [NATURAL_8]
+			current_block: ARRAY [NATURAL_8]
+		do
+			create l_iv.make_filled (0, 1, aes_blocklen)
+			l_iv.copy (iv)
 
-            from
-                i := 1
-            until
-                i > a_buffer.count
-            loop
-                    -- Extract the current block
-                current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
-                current_block.rebase (1)
+			from
+				i := 1
+			until
+				i > a_buffer.count
+			loop
+					-- Extract the current block
+				current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
+				current_block.rebase (1)
 
-                    -- XOR with IV
-                xor_with_iv (current_block, l_iv)
+					-- XOR with IV
+				xor_with_iv (current_block, l_iv)
 
-                    -- Encrypt the block
-                cipher (current_block)
+					-- Encrypt the block
+				cipher (current_block)
 
-                    -- Copy the encrypted block back to the buffer
-                a_buffer.subcopy (current_block, 1, aes_blocklen, i)
+					-- Copy the encrypted block back to the buffer
+				a_buffer.subcopy (current_block, 1, aes_blocklen, i)
 
-                    -- Set the next IV
-                l_iv.copy (current_block)
+					-- Set the next IV
+				l_iv.copy (current_block)
 
-                i := i + aes_blocklen
-            end
+				i := i + aes_blocklen
+			end
 
-                -- Store IV in context for next call
-            iv.copy (l_iv)
-        ensure
-            buffer_length_unchanged: a_buffer.count = old a_buffer.count
-        end
+				-- Store IV in context for next call
+			iv.copy (l_iv)
+		ensure
+			buffer_length_unchanged: a_buffer.count = old a_buffer.count
+		end
 
 	ctr_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
 			-- Encrypt the buffer using CTR mode
@@ -183,7 +183,6 @@ feature -- Constants
 			-- Block length in bytes - AES is 128b block only
 
 feature {NONE} -- Implementation
-
 
 	expand_key (a_key: ARRAY [NATURAL_8])
 			-- Expand the input key for AES
@@ -606,29 +605,30 @@ feature {NONE} -- Helper functions
 			state.put (temp, 2, 4)
 		end
 
-    mix_columns (state: ARRAY2 [NATURAL_8])
-            -- MixColumns operation
-        require
-            state_not_void: state /= Void
-            state_correct_size: state.height = 4 and state.width = 4
-        local
-            i: INTEGER
-            a, b, c, d: NATURAL_8
-        do
-            from i := 1 until i > 4 loop
-                a := state.item (i, 1)
-                b := state.item (i, 2)
-                c := state.item (i, 3)
-                d := state.item (i, 4)
+	mix_columns (state: ARRAY2 [NATURAL_8])
+			-- MixColumns operation
+		require
+			state_not_void: state /= Void
+			state_correct_size: state.height = 4 and state.width = 4
+		local
+			i: INTEGER
+			a, b, c, d: NATURAL_8
+		do
+			from i := 1 until i > 4 loop
+				a := state.item (i, 1)
+				b := state.item (i, 2)
+				c := state.item (i, 3)
+				d := state.item (i, 4)
 
-                state.put (multiply (a, 0x02).bit_xor (multiply (b, 0x03)).bit_xor (c).bit_xor (d), i, 1)
-                state.put (a.bit_xor (multiply (b, 0x02)).bit_xor (multiply (c, 0x03)).bit_xor (d), i, 2)
-                state.put (a.bit_xor (b).bit_xor (multiply (c, 0x02)).bit_xor (multiply (d, 0x03)), i, 3)
-                state.put (multiply (a, 0x03).bit_xor (b).bit_xor (c).bit_xor (multiply (d, 0x02)), i, 4)
+				state.put (multiply (a, 0x02).bit_xor (multiply (b, 0x03)).bit_xor (c).bit_xor (d), i, 1)
+				state.put (a.bit_xor (multiply (b, 0x02)).bit_xor (multiply (c, 0x03)).bit_xor (d), i, 2)
+				state.put (a.bit_xor (b).bit_xor (multiply (c, 0x02)).bit_xor (multiply (d, 0x03)), i, 3)
+				state.put (multiply (a, 0x03).bit_xor (b).bit_xor (c).bit_xor (multiply (d, 0x02)), i, 4)
 
-                i := i + 1
-            end
-        end
+				i := i + 1
+			end
+		end
+		
 	cipher (state: ARRAY [NATURAL_8])
 			-- Cipher operation (you need to implement this based on the AES algorithm)
 		require
