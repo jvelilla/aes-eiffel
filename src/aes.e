@@ -1,8 +1,19 @@
 note
-	description: "AES encryption implementation based on tiny-AES-c"
+	description: "[
+		This is a small implementation of the AES 
+		[ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29), 
+		[CTR](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29) and 
+		[CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29) 
+		encryption algorithms written in pure Eiffel based on tiny-AES-c C implementation. 
+
+	]"
 	date: "$Date$"
 	revision: "$Revision$"
 	EIS: "name=tiny-AES-c", "src=https://github.com/kokke/tiny-AES-c", "protocol=uri"
+	EIS: "name=ECB", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29	", "protocol=uri"
+	EIS: "name=CTR", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29", "protocol=uri"
+	EIS: "name=CBC", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29", "protocol=uri"
+	EIS: "name=AES-Documentation", "src=https://en.wikipedia.org/wiki/Advanced_Encryption_Standard", "protocol=uri"
 
 class
 	AES
@@ -20,8 +31,6 @@ feature {NONE} -- Initialization
 
 	make_with_params (a_parameters: AES_PARAMETERS)
 			-- Initialize the AES context with specific parameters
-		require
-			a_parameters_not_void: a_parameters /= Void
 		do
 			parameters := a_parameters
 			create round_key.make_filled (0, 1, parameters.key_exp_size)
@@ -63,7 +72,6 @@ feature -- Encryption Operations
 	ecb_encrypt (a_buffer: ARRAY [NATURAL_8])
 			-- Encrypt the buffer using ECB mode
 		require
-			a_buffer_not_void: a_buffer /= Void
 			a_buffer_correct_size: a_buffer.count \\ aes_blocklen = 0
 		local
 			i: INTEGER
@@ -93,7 +101,6 @@ feature -- Encryption Operations
 	cbc_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
 			-- Encrypt the buffer using CBC mode
 		require
-			buffer_not_void: a_buffer /= Void
 			buffer_size_multiple_of_block_length: a_buffer.count \\ aes_blocklen = 0
 		local
 			i: INTEGER
@@ -136,8 +143,6 @@ feature -- Encryption Operations
 	ctr_xcrypt_buffer (buf: ARRAY [NATURAL_8])
 			-- Symmetrical operation: same function for encrypting as for decrypting.
 			-- Note any IV/nonce should never be reused with the same key.
-		require
-			buf_not_void: buf /= Void
 		local
 			buffer: ARRAY [NATURAL_8]
 			i, bi: INTEGER
@@ -186,7 +191,6 @@ feature -- Decryption Operations
 	ecb_decrypt (a_buffer: ARRAY [NATURAL_8])
 			-- Decrypt the buffer using ECB mode
 		require
-			a_buffer_not_void: a_buffer /= Void
 			a_buffer_correct_size: a_buffer.count \\ aes_blocklen = 0
 		local
 			i: INTEGER
@@ -216,7 +220,6 @@ feature -- Decryption Operations
 	cbc_decrypt_buffer (buf: ARRAY [NATURAL_8])
 			-- Decrypt the buffer using CBC mode
 		require
-			buf_not_void: buf /= Void
 			buf_length_valid: buf.count \\ aes_blocklen = 0
 		local
 			i: INTEGER
@@ -352,7 +355,6 @@ feature {NONE} -- Implementation
 	inv_cipher (state: ARRAY [NATURAL_8])
 			-- Inverse cipher operation
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.count = aes_blocklen
 		local
 			round: INTEGER
@@ -390,8 +392,6 @@ feature {NONE} -- Implementation
 	xor_with_iv (buf: ARRAY [NATURAL_8]; a_iv: ARRAY [NATURAL_8])
 			-- XOR the buffer with the IV
 		require
-			buf_not_void: buf /= Void
-			iv_not_void: a_iv /= Void
 			buf_correct_size: buf.count = aes_blocklen
 			iv_correct_size: a_iv.count = aes_blocklen
 		local
@@ -410,7 +410,6 @@ feature {NONE} -- Implementation
 	inv_sub_bytes (state: ARRAY2 [NATURAL_8])
 			-- Inverse sub bytes operation
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.height = 4 and state.width = 4
 		local
 			i, j: INTEGER
@@ -598,6 +597,7 @@ feature {NONE} -- Helper functions
 				i := i + 1
 			end
 		end
+
 	add_round_key (round: INTEGER; state: ARRAY2 [NATURAL_8]; a_round_key: ARRAY [NATURAL_8])
 			-- Add round key to state
 		local
@@ -649,7 +649,6 @@ feature {NONE} -- Helper functions
 	sub_bytes (state: ARRAY2 [NATURAL_8])
 			-- SubBytes operation
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.height = 4 and state.width = 4
 		local
 			i, j: INTEGER
@@ -666,7 +665,6 @@ feature {NONE} -- Helper functions
 	shift_rows (state: ARRAY2 [NATURAL_8])
 			-- ShiftRows operation
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.height = 4 and state.width = 4
 		local
 			temp: NATURAL_8
@@ -698,7 +696,6 @@ feature {NONE} -- Helper functions
 	mix_columns (state: ARRAY2 [NATURAL_8])
 			-- MixColumns operation
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.height = 4 and state.width = 4
 		local
 			i: INTEGER
@@ -722,7 +719,6 @@ feature {NONE} -- Helper functions
 	cipher (state: ARRAY [NATURAL_8])
 			-- Cipher operation (you need to implement this based on the AES algorithm)
 		require
-			state_not_void: state /= Void
 			state_correct_size: state.count = aes_blocklen
 		local
 			state_2d: ARRAY2 [NATURAL_8]
@@ -759,7 +755,6 @@ feature {NONE} -- Helper functions
 invariant
 	round_key_size_valid: round_key.count = parameters.key_exp_size
 	iv_size_valid: iv.count = aes_blocklen
-	iv_not_void: iv /= Void
 	iv_correct_size: iv.count = aes_blocklen
 
 end
