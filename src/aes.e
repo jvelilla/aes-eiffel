@@ -185,8 +185,32 @@ feature -- Decryption Operations
 
 	ecb_decrypt (a_buffer: ARRAY [NATURAL_8])
 			-- Decrypt the buffer using ECB mode
+		require
+			a_buffer_not_void: a_buffer /= Void
+			a_buffer_correct_size: a_buffer.count \\ aes_blocklen = 0
+		local
+			i: INTEGER
+			current_block: ARRAY [NATURAL_8]
 		do
-				-- Implement ECB decryption
+			from
+				i := 1
+			until
+				i > a_buffer.count
+			loop
+				-- Extract the current block
+				current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
+				current_block.rebase (1)
+
+				-- Decrypt the block
+				inv_cipher (current_block)
+
+				-- Copy the decrypted block back to the buffer
+				a_buffer.subcopy (current_block, 1, aes_blocklen, i)
+
+				i := i + aes_blocklen
+			end
+		ensure
+			buffer_length_unchanged: a_buffer.count = old a_buffer.count
 		end
 
 	cbc_decrypt_buffer (buf: ARRAY [NATURAL_8])

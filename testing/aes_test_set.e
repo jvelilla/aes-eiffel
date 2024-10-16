@@ -15,8 +15,7 @@ feature -- Test routines
 	test_cbc_decrypt
 			-- Test CBC mode decryption for all AES variants
 		local
-			ctx: AES
-			key, iv, l_input, output: ARRAY [NATURAL_8]
+			key, l_input: ARRAY [NATURAL_8]
 			parameters: AES_PARAMETERS
 		do
 				-- Test AES-128
@@ -65,8 +64,7 @@ feature -- Test routines
 	test_cbc_encrypt
 			-- Test CBC mode encryption for all AES variants
 		local
-			ctx: AES
-			key, iv, l_input, output: ARRAY [NATURAL_8]
+			key, l_input: ARRAY [NATURAL_8]
 			parameters: AES_PARAMETERS
 		do
 				-- Test AES-128
@@ -118,8 +116,7 @@ feature -- Test routines
 	test_ctr_xcrypt
 			-- Test CTR mode encryption/decryption for all AES variants
 		local
-			ctx: AES
-			key, iv, l_input, output: ARRAY [NATURAL_8]
+			key, l_input: ARRAY [NATURAL_8]
 			parameters: AES_PARAMETERS
 		do
 				-- Test AES-128
@@ -167,7 +164,6 @@ feature -- Test routines
 	test_ecb_encrypt
 			-- Test ECB mode encryption for all AES variants
 		local
-			ctx: AES
 			key, l_input, expected_output: ARRAY [NATURAL_8]
 			parameters: AES_PARAMETERS
 		do
@@ -221,6 +217,56 @@ feature -- Test routines
 					0x06, 0x4b, 0x5a, 0x7e, 0x3d, 0xb1, 0x81, 0xf8
 				>>
 			perform_ecb_encrypt_test (parameters, key, l_input, expected_output)
+		end
+
+	test_ecb_decrypt
+			-- Test ECB mode decryption for all AES variants
+		local
+			key, l_input, expected_output: ARRAY [NATURAL_8]
+			parameters: AES_PARAMETERS
+		do
+				-- Test AES-128
+			parameters := create {AES_128_PARAMETERS}
+			key := <<
+					0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+					0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c
+				>>
+			l_input := <<
+					0x3a, 0xd7, 0x7b, 0xb4, 0x0d, 0x7a, 0x36, 0x60,
+					0xa8, 0x9e, 0xca, 0xf3, 0x24, 0x66, 0xef, 0x97
+				>>
+			expected_output := <<
+					0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+					0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a
+				>>
+			perform_ecb_decrypt_test (parameters, key, l_input, expected_output)
+
+				-- Test AES-192
+			parameters := create {AES_192_PARAMETERS}
+			key := <<
+					0x8e, 0x73, 0xb0, 0xf7, 0xda, 0x0e, 0x64, 0x52,
+					0xc8, 0x10, 0xf3, 0x2b, 0x80, 0x90, 0x79, 0xe5,
+					0x62, 0xf8, 0xea, 0xd2, 0x52, 0x2c, 0x6b, 0x7b
+				>>
+			l_input := <<
+					0xbd, 0x33, 0x4f, 0x1d, 0x6e, 0x45, 0xf2, 0x5f,
+					0xf7, 0x12, 0xa2, 0x14, 0x57, 0x1f, 0xa5, 0xcc
+				>>
+			perform_ecb_decrypt_test (parameters, key, l_input, expected_output)
+
+				-- Test AES-256
+			parameters := create {AES_256_PARAMETERS}
+			key := <<
+					0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
+					0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+					0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
+					0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
+				>>
+			l_input := <<
+					0xf3, 0xee, 0xd1, 0xbd, 0xb5, 0xd2, 0xa0, 0x3c,
+					0x06, 0x4b, 0x5a, 0x7e, 0x3d, 0xb1, 0x81, 0xf8
+				>>
+			perform_ecb_decrypt_test (parameters, key, l_input, expected_output)
 		end
 
 feature {NONE} -- Implementation
@@ -314,6 +360,18 @@ feature {NONE} -- Implementation
 			ctx.ecb_encrypt (a_input)
 
 			assert ("ECB encrypt failed for " + a_parameters.generator, a_input.is_equal (a_expected_output))
+		end
+
+	perform_ecb_decrypt_test (a_parameters: AES_PARAMETERS; a_key, a_input, a_expected_output: ARRAY [NATURAL_8])
+			-- Perform ECB decrypt test for given parameters, key, input, and expected output
+		local
+			ctx: AES
+		do
+			create ctx.make_with_params (a_parameters)
+			ctx.init_ctx (a_key)
+			ctx.ecb_decrypt (a_input)
+
+			assert ("ECB decrypt failed for " + a_parameters.generator, a_input.is_equal (a_expected_output))
 		end
 
 	key_for_variant (a_parameters: AES_PARAMETERS): ARRAY [NATURAL_8]
