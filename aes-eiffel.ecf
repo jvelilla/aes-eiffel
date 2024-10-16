@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="aes-eiffel" uuid="75DB40BA-FDB7-4104-A6CA-37A67D8D3260" library_target="aes-eiffel">
+	<target name="aes-eiffel">
+		<root all_classes="true"/>
+		<file_rule>
+			<exclude>/CVS$</exclude>
+			<exclude>/EIFGENs$</exclude>
+			<exclude>/\.git$</exclude>
+			<exclude>/\.svn$</exclude>
+		</file_rule>
+		<option warning="warning" is_obsolete_iteration="true" manifest_array_type="mismatch_warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<setting name="total_order_on_reals" value="false"/>
+		<setting name="dead_code_removal" value="feature"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf">
+			<option/>
+		</library>
+		<cluster name="src" location=".\src\" recursive="true">
+			<option is_obsolete_iteration="true"/>
+		</cluster>
+	</target>
+	<target name="aes-eiffel_tests" extends="aes-eiffel">
+		<root class="APPLICATION" feature="make"/>
+		<option warning="warning" is_obsolete_iteration="true">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<setting name="console_application" value="true"/>
+		<setting name="total_order_on_reals" value="true"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf">
+			<option/>
+		</library>
+		<cluster name="test" location=".\testing\" recursive="true">
+			<option is_obsolete_iteration="true"/>
+		</cluster>
+	</target>
+</system>

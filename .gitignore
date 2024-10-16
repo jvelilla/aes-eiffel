@@ -1,0 +1,14 @@
+.svn/
+EIFGENs/
+.*.swp
+.*.swo
+*.pdb
+.vs/
+*.o
+*.obj
+backend/docker/var*/
+ml-py*/
+local-py*/
+backend/server/site/import/*/*/issues/
+backend/server/_DATA/db
+backend/docker/_DATA/db
