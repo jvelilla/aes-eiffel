@@ -109,10 +109,52 @@ feature -- Encryption Operations
 			buffer_length_unchanged: a_buffer.count = old a_buffer.count
 		end
 
-	ctr_encrypt_buffer (a_buffer: ARRAY [NATURAL_8])
-			-- Encrypt the buffer using CTR mode
+	ctr_xcrypt_buffer (buf: ARRAY [NATURAL_8])
+			-- Symmetrical operation: same function for encrypting as for decrypting.
+			-- Note any IV/nonce should never be reused with the same key.
+		require
+			buf_not_void: buf /= Void
+		local
+			buffer: ARRAY [NATURAL_8]
+			i, bi: INTEGER
 		do
-				-- Implement CTR encryption
+			create buffer.make_filled (0, 1, aes_blocklen)
+
+			from
+				i := 1
+				bi := aes_blocklen + 1
+			until
+				i > buf.count
+			loop
+				if bi > aes_blocklen then
+						-- We need to regen xor complement in buffer
+					buffer.copy (iv)
+					cipher (buffer)
+
+						-- Increment Iv and handle overflow
+					from
+						bi := aes_blocklen
+					until
+						bi < 1
+					loop
+						if iv[bi] = 255 then
+							iv[bi] := 0
+							bi := bi - 1
+						else
+							iv[bi] := iv[bi] + 1
+							bi := 0  -- Exit the loop
+						end
+					end
+					bi := 1
+				end
+
+				buf[i] := buf[i].bit_xor (buffer[bi])
+
+				i := i + 1
+				bi := bi + 1
+			end
+		ensure
+			buf_size_unchanged: buf.count = old buf.count
 		end
 
 feature -- Decryption Operations
@@ -628,7 +670,7 @@ feature {NONE} -- Helper functions
 				i := i + 1
 			end
 		end
-		
+
 	cipher (state: ARRAY [NATURAL_8])
 			-- Cipher operation (you need to implement this based on the AES algorithm)
 		require
