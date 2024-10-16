@@ -1,6 +1,5 @@
 note
     description: "Strategy class for AES parameters"
-    author: "Your Name"
     date: "$Date$"
     revision: "$Revision$"
 

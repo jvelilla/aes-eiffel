@@ -1,8 +1,8 @@
 note
-	description: "AES encryption implementation"
-	author: "Your Name"
+	description: "AES encryption implementation based on tiny-AES-c"
 	date: "$Date$"
 	revision: "$Revision$"
+	EIS: "name=tiny-AES-c", "src=https://github.com/kokke/tiny-AES-c", "protocol=uri"
 
 class
 	AES
