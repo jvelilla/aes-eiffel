@@ -1,16 +1,15 @@
 note
 	description: "[
-		This is a small implementation of the AES 
-		[ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29), 
-		[CTR](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29) and 
-		[CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29) 
-		encryption algorithms written in pure Eiffel based on tiny-AES-c C implementation. 
-
-	]"
+			This is a small implementation of the AES 
+			[ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29), 
+			[CTR](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29) and 
+			[CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29) 
+			encryption algorithms written in pure Eiffel based on tiny-AES-c C implementation.
+		]"
 	date: "$Date$"
 	revision: "$Revision$"
 	EIS: "name=tiny-AES-c", "src=https://github.com/kokke/tiny-AES-c", "protocol=uri"
-	EIS: "name=ECB", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29	", "protocol=uri"
+	EIS: "name=ECB", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29%T", "protocol=uri"
 	EIS: "name=CTR", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29", "protocol=uri"
 	EIS: "name=CBC", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29", "protocol=uri"
 	EIS: "name=AES-Documentation", "src=https://en.wikipedia.org/wiki/Advanced_Encryption_Standard", "protocol=uri"
@@ -67,6 +66,228 @@ feature -- Context Setup
 			iv.copy (a_iv)
 		end
 
+feature -- String Operations
+
+	ecb_encoding_string (s: READABLE_STRING_8; a_key: STRING_8): STRING_8
+			-- Encode the input string `s` using ECB mode with the given key `a_key`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			padding_length: INTEGER
+			key_array: ARRAY [NATURAL_8]
+		do
+				-- Convert key to NATURAL_8 array
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key
+			init_ctx (key_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+				-- Add PKCS7 padding
+			padding_length := aes_blocklen - (buffer.count \\ aes_blocklen)
+			from
+				buffer.grow (buffer.count + padding_length)
+			until
+				buffer.count \\ aes_blocklen = 0
+			loop
+				buffer.force (padding_length.to_natural_8, buffer.count + 1)
+			end
+
+			ecb_encrypt (buffer)
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+		end
+
+	ecb_decoding_string (s: READABLE_STRING_8; a_key: STRING_8): STRING_8
+			-- Decode the input string `s` using ECB mode with the given key `a_key`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			padding_length: INTEGER
+			key_array: ARRAY [NATURAL_8]
+			i: INTEGER
+		do
+				-- Convert key to NATURAL_8 array
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key
+			init_ctx (key_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+			ecb_decrypt (buffer)
+
+				-- Remove PKCS7 padding
+			padding_length := buffer.item (buffer.count).to_integer_32
+			if padding_length > 0 and padding_length <= aes_blocklen then
+				buffer.remove_tail (padding_length)
+			end
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+
+			   -- Remove null characters from the end of the string
+            from
+                i := Result.count
+            until
+                i = 0 or else Result.item (i) /= '%U'
+            loop
+                i := i - 1
+            end
+            if i < Result.count then
+                Result.keep_head (i)
+            end
+		end
+
+	cbc_encoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_iv: STRING_8): STRING_8
+			-- Encode the input string `s` using CBC mode with the given key `a_key` and IV `a_iv`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+			iv_length_valid: a_iv.count = aes_blocklen
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			padding_length: INTEGER
+			key_array, iv_array: ARRAY [NATURAL_8]
+		do
+				-- Convert key and IV to NATURAL_8 arrays
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+			create converter.make_from_string (a_iv)
+			iv_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key and IV
+			init_ctx_iv (key_array, iv_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+				-- Add PKCS7 padding
+			padding_length := aes_blocklen - (buffer.count \\ aes_blocklen)
+			from
+				buffer.grow (buffer.count + padding_length)
+			until
+				buffer.count \\ aes_blocklen = 0
+			loop
+				buffer.force (padding_length.to_natural_8, buffer.count + 1)
+			end
+
+			cbc_encrypt_buffer (buffer)
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+		end
+
+	cbc_decoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_iv: STRING_8): STRING_8
+			-- Decode the input string `s` using CBC mode with the given key `a_key`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+			iv_length_valid: a_iv.count = aes_blocklen
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			padding_length: INTEGER
+			key_array, iv_array: ARRAY [NATURAL_8]
+			i: INTEGER
+		do
+				-- Convert key and IV to NATURAL_8 arrays
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+			create converter.make_from_string (a_iv)
+			iv_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key and IV
+			init_ctx_iv (key_array, iv_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+			cbc_decrypt_buffer (buffer)
+
+				-- Remove PKCS7 padding
+			padding_length := buffer.item (buffer.count).to_integer_32
+			if padding_length > 0 and padding_length <= aes_blocklen then
+				buffer.remove_tail (padding_length)
+			end
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+
+			   -- Remove null characters from the end of the string
+		    from
+		      	i := Result.count
+		    until
+		         i = 0 or else Result.item (i) /= '%U'
+		    loop
+		         i := i - 1
+		    end
+		    if i < Result.count then
+		      Result.keep_head (i)
+		    end
+		end
+
+	ctr_encoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_nonce: STRING_8): STRING_8
+			-- Encode the input string `s` using CTR mode with the given key `a_key` and nonce `a_nonce`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+			nonce_length_valid: a_nonce.count = aes_blocklen
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			key_array, nonce_array: ARRAY [NATURAL_8]
+		do
+				-- Convert key and nonce to NATURAL_8 arrays
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+			create converter.make_from_string (a_nonce)
+			nonce_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key and nonce
+			init_ctx_iv (key_array, nonce_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+				-- No padding is needed for CTR mode
+			ctr_xcrypt_buffer (buffer)
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+		end
+
+	ctr_decoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_nonce: STRING_8): STRING_8
+			-- Decode the input string `s` using CTR mode with the given key `a_key` and nonce `a_nonce`
+		require
+			key_length_valid: a_key.count = parameters.key_length
+			nonce_length_valid: a_nonce.count = aes_blocklen
+		local
+			converter: BYTE_ARRAY_CONVERTER
+			buffer: ARRAY [NATURAL_8]
+			key_array, nonce_array: ARRAY [NATURAL_8]
+		do
+				-- Convert key and nonce to NATURAL_8 arrays
+			create converter.make_from_string (a_key)
+			key_array := converter.to_natural_8_array
+			create converter.make_from_string (a_nonce)
+			nonce_array := converter.to_natural_8_array
+
+				-- Initialize AES context with the key and nonce
+			init_ctx_iv (key_array, nonce_array)
+
+			create converter.make_from_string (s)
+			buffer := converter.to_natural_8_array
+
+				-- CTR mode is symmetric, so we use the same operation for decryption
+			ctr_xcrypt_buffer (buffer)
+
+			create Result.make_from_string (make_from_natural_8_array (buffer))
+		end
+
 feature -- Encryption Operations
 
 	ecb_encrypt (a_buffer: ARRAY [NATURAL_8])
@@ -82,14 +303,14 @@ feature -- Encryption Operations
 			until
 				i > a_buffer.count
 			loop
-				-- Extract the current block
+					-- Extract the current block
 				current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
 				current_block.rebase (1)
 
-				-- Encrypt the block
+					-- Encrypt the block
 				cipher (current_block)
 
-				-- Copy the encrypted block back to the buffer
+					-- Copy the encrypted block back to the buffer
 				a_buffer.subcopy (current_block, 1, aes_blocklen, i)
 
 				i := i + aes_blocklen
@@ -166,18 +387,18 @@ feature -- Encryption Operations
 					until
 						bi < 1
 					loop
-						if iv[bi] = 255 then
-							iv[bi] := 0
+						if iv [bi] = 255 then
+							iv [bi] := 0
 							bi := bi - 1
 						else
-							iv[bi] := iv[bi] + 1
-							bi := 0  -- Exit the loop
+							iv [bi] := iv [bi] + 1
+							bi := 0 -- Exit the loop
 						end
 					end
 					bi := 1
 				end
 
-				buf[i] := buf[i].bit_xor (buffer[bi])
+				buf [i] := buf [i].bit_xor (buffer [bi])
 
 				i := i + 1
 				bi := bi + 1
@@ -201,14 +422,14 @@ feature -- Decryption Operations
 			until
 				i > a_buffer.count
 			loop
-				-- Extract the current block
+					-- Extract the current block
 				current_block := a_buffer.subarray (i, i + aes_blocklen - 1)
 				current_block.rebase (1)
 
-				-- Decrypt the block
+					-- Decrypt the block
 				inv_cipher (current_block)
 
-				-- Copy the decrypted block back to the buffer
+					-- Copy the decrypted block back to the buffer
 				a_buffer.subcopy (current_block, 1, aes_blocklen, i)
 
 				i := i + aes_blocklen
@@ -750,6 +971,20 @@ feature {NONE} -- Helper functions
 			state_to_array (state_2d, state)
 		ensure
 			state_size_unchanged: state.count = old state.count
+		end
+
+feature {NONE} -- Implementation
+
+	make_from_natural_8_array (a_array: ARRAY [NATURAL_8]): STRING
+			-- Convert an array of NATURAL_8 to a STRING using BYTE_ARRAY_CONVERTER
+		local
+			l_bac: BYTE_ARRAY_CONVERTER
+		do
+			create l_bac.make (a_array.count)
+			across a_array as ic loop
+				l_bac.extend (ic.item)
+			end
+			Result := l_bac.string
 		end
 
 invariant
