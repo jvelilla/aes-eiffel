@@ -66,7 +66,7 @@ feature -- Context Setup
 			iv.copy (a_iv)
 		end
 
-feature -- String Operations
+feature -- String ECB encoding
 
 	ecb_encoding_string (s: READABLE_STRING_8; a_key: STRING_8): STRING_8
 			-- Encode the input string `s` using ECB mode with the given key `a_key`
@@ -127,7 +127,7 @@ feature -- String Operations
 			ecb_decrypt (buffer)
 
 				-- Remove PKCS7 padding
-			padding_length := buffer.item (buffer.count).to_integer_32
+			padding_length := buffer [buffer.count].to_integer_32
 			if padding_length > 0 and padding_length <= aes_blocklen then
 				buffer.remove_tail (padding_length)
 			end
@@ -138,7 +138,7 @@ feature -- String Operations
             from
                 i := Result.count
             until
-                i = 0 or else Result.item (i) /= '%U'
+                i = 0 or else Result [i] /= '%U'
             loop
                 i := i - 1
             end
@@ -146,6 +146,8 @@ feature -- String Operations
                 Result.keep_head (i)
             end
 		end
+
+feature -- String CBC encoding		
 
 	cbc_encoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_iv: STRING_8): STRING_8
 			-- Encode the input string `s` using CBC mode with the given key `a_key` and IV `a_iv`
@@ -212,7 +214,7 @@ feature -- String Operations
 			cbc_decrypt_buffer (buffer)
 
 				-- Remove PKCS7 padding
-			padding_length := buffer.item (buffer.count).to_integer_32
+			padding_length := buffer [buffer.count].to_integer_32
 			if padding_length > 0 and padding_length <= aes_blocklen then
 				buffer.remove_tail (padding_length)
 			end
@@ -223,7 +225,7 @@ feature -- String Operations
 		    from
 		      	i := Result.count
 		    until
-		         i = 0 or else Result.item (i) /= '%U'
+		         i = 0 or else Result [i] /= '%U'
 		    loop
 		         i := i - 1
 		    end
@@ -231,6 +233,8 @@ feature -- String Operations
 		      Result.keep_head (i)
 		    end
 		end
+
+feature -- String CTR encoding		
 
 	ctr_encoding_string (s: READABLE_STRING_8; a_key: STRING_8; a_nonce: STRING_8): STRING_8
 			-- Encode the input string `s` using CTR mode with the given key `a_key` and nonce `a_nonce`
@@ -645,7 +649,7 @@ feature {NONE} -- Implementation
 				until
 					j > 4
 				loop
-					state.put (get_sbox_invert (state.item (j, i)), j, i)
+					state [j, i] := get_sbox_invert (state [j, i])
 					j := j + 1
 				end
 				i := i + 1
@@ -677,15 +681,15 @@ feature {NONE} -- Implementation
 			until
 				i > 4
 			loop
-				a := state.item (i, 1)
-				b := state.item (i, 2)
-				c := state.item (i, 3)
-				d := state.item (i, 4)
+				a := state [i, 1]
+				b := state [i, 2]
+				c := state [i, 3]
+				d := state [i, 4]
 
-				state.put (multiply (a, 0x0e).bit_xor (multiply (b, 0x0b)).bit_xor (multiply (c, 0x0d)).bit_xor (multiply (d, 0x09)), i, 1)
-				state.put (multiply (a, 0x09).bit_xor (multiply (b, 0x0e)).bit_xor (multiply (c, 0x0b)).bit_xor (multiply (d, 0x0d)), i, 2)
-				state.put (multiply (a, 0x0d).bit_xor (multiply (b, 0x09)).bit_xor (multiply (c, 0x0e)).bit_xor (multiply (d, 0x0b)), i, 3)
-				state.put (multiply (a, 0x0b).bit_xor (multiply (b, 0x0d)).bit_xor (multiply (c, 0x09)).bit_xor (multiply (d, 0x0e)), i, 4)
+				state [i, 1] := multiply (a, 0x0e).bit_xor (multiply (b, 0x0b)).bit_xor (multiply (c, 0x0d)).bit_xor (multiply (d, 0x09))
+				state [i, 2] := multiply (a, 0x09).bit_xor (multiply (b, 0x0e)).bit_xor (multiply (c, 0x0b)).bit_xor (multiply (d, 0x0d))
+				state [i, 3] := multiply (a, 0x0d).bit_xor (multiply (b, 0x09)).bit_xor (multiply (c, 0x0e)).bit_xor (multiply (d, 0x0b))
+				state [i, 4] := multiply (a, 0x0b).bit_xor (multiply (b, 0x0d)).bit_xor (multiply (c, 0x09)).bit_xor (multiply (d, 0x0e))
 
 				i := i + 1
 			end
@@ -712,11 +716,11 @@ feature {NONE} -- Implementation
 					p := p.bit_xor (l_x)
 				end
 				high_bit_set := l_x.bit_and (0x80) /= 0
-				l_x := l_x.bit_shift_left (1)
+				l_x := l_x |<< 1
 				if high_bit_set then
 					l_x := l_x.bit_xor (0x1B) -- x^8 + x^4 + x^3 + x + 1
 				end
-				l_y := l_y.bit_shift_right (1)
+				l_y := l_y |>> 1
 				i := i + 1
 			end
 			Result := p
@@ -797,7 +801,7 @@ feature {NONE} -- Helper functions
 			from i := 0 until i >= 4 loop
 				from j := 0 until j >= 4 loop
 					k := j + 4 * i + 1 -- Calculate index for row-major order
-					state.put (arr [k], i + 1, j + 1)
+					state [i + 1, j + 1] := arr [k]
 					j := j + 1
 				end
 				i := i + 1
@@ -812,7 +816,7 @@ feature {NONE} -- Helper functions
 			from i := 0 until i >= 4 loop
 				from j := 0 until j >= 4 loop
 					k := j + 4 * i + 1 -- Calculate index for row-major order
-					arr [k] := state.item (i + 1, j + 1)
+					arr [k] := state [i + 1, j + 1]
 					j := j + 1
 				end
 				i := i + 1
@@ -826,7 +830,7 @@ feature {NONE} -- Helper functions
 		do
 			from i := 1 until i > 4 loop
 				from j := 1 until j > 4 loop
-					state.put (state.item (i, j).bit_xor (a_round_key [(round * parameters.nb * 4) + (i - 1) * parameters.nb + j]), i, j)
+					state [i,j] := state [i, j].bit_xor (a_round_key [(round * parameters.nb * 4) + (i - 1) * parameters.nb + j])
 					j := j + 1
 				end
 				i := i + 1
@@ -842,27 +846,27 @@ feature {NONE} -- Helper functions
 			temp: NATURAL_8
 		do
 				-- Rotate first row 1 column to right
-			temp := state.item (4, 2)
-			state.put (state.item (3, 2), 4, 2)
-			state.put (state.item (2, 2), 3, 2)
-			state.put (state.item (1, 2), 2, 2)
-			state.put (temp, 1, 2)
+			temp := state [4, 2]
+			state [4, 2] := state [3, 2]
+			state [3, 2] := state [2, 2]
+			state [2, 2] := state [1, 2]
+			state [1, 2] := temp
 
 				-- Rotate second row 2 columns to right
-			temp := state.item (1, 3)
-			state.put (state.item (3, 3), 1, 3)
-			state.put (temp, 3, 3)
+			temp := state [1, 3]
+			state [1, 3] := state [3, 3]
+			state [3, 3] := temp
 
-			temp := state.item (2, 3)
-			state.put (state.item (4, 3), 2, 3)
-			state.put (temp, 4, 3)
+			temp := state [2, 3]
+			state [2, 3] := state [4, 3]
+			state [4, 3] := temp
 
 				-- Rotate third row 3 columns to right
-			temp := state.item (1, 4)
-			state.put (state.item (2, 4), 1, 4)
-			state.put (state.item (3, 4), 2, 4)
-			state.put (state.item (4, 4), 3, 4)
-			state.put (temp, 4, 4)
+			temp := state [1, 4]
+			state [1, 4] := state [2, 4]
+			state [2, 4] := state [3, 4]
+			state [3, 4] := state [4, 4]
+			state [4, 4] := temp
 		ensure
 			state_size_unchanged: state.height = old state.height and state.width = old state.width
 		end
@@ -876,7 +880,7 @@ feature {NONE} -- Helper functions
 		do
 			from i := 1 until i > 4 loop
 				from j := 1 until j > 4 loop
-					state.put (get_sbox_value (state.item (i, j)), i, j)
+					state [i, j] := get_sbox_value (state [i, j])
 					j := j + 1
 				end
 				i := i + 1
@@ -891,27 +895,27 @@ feature {NONE} -- Helper functions
 			temp: NATURAL_8
 		do
 				-- Rotate first row 1 column to left
-			temp := state.item (1, 2)
-			state.put (state.item (2, 2), 1, 2)
-			state.put (state.item (3, 2), 2, 2)
-			state.put (state.item (4, 2), 3, 2)
-			state.put (temp, 4, 2)
+			temp := state [1, 2]
+			state [1, 2] := state [2, 2]
+			state [2, 2] := state [3, 2]
+			state [3, 2] := state [4, 2]
+			state [4, 2] := temp
 
 				-- Rotate second row 2 columns to left
-			temp := state.item (1, 3)
-			state.put (state.item (3, 3), 1, 3)
-			state.put (temp, 3, 3)
+			temp := state [1, 3]
+			state [1, 3] := state [3, 3]
+			state [3, 3] := temp
 
-			temp := state.item (2, 3)
-			state.put (state.item (4, 3), 2, 3)
-			state.put (temp, 4, 3)
+			temp := state [2, 3]
+			state [2, 3] := state [4, 3]
+			state [4, 3] := temp
 
 				-- Rotate third row 3 columns to left
-			temp := state.item (1, 4)
-			state.put (state.item (4, 4), 1, 4)
-			state.put (state.item (3, 4), 4, 4)
-			state.put (state.item (2, 4), 3, 4)
-			state.put (temp, 2, 4)
+			temp := state [1, 4]
+			state [1, 4] := state [4, 4]
+			state [4, 4] := state [3, 4]
+			state [3, 4] := state [2, 4]
+			state [2, 4] := temp
 		end
 
 	mix_columns (state: ARRAY2 [NATURAL_8])
@@ -923,15 +927,15 @@ feature {NONE} -- Helper functions
 			a, b, c, d: NATURAL_8
 		do
 			from i := 1 until i > 4 loop
-				a := state.item (i, 1)
-				b := state.item (i, 2)
-				c := state.item (i, 3)
-				d := state.item (i, 4)
+				a := state [i, 1]
+				b := state [i, 2]
+				c := state [i, 3]
+				d := state [i, 4]
 
-				state.put (multiply (a, 0x02).bit_xor (multiply (b, 0x03)).bit_xor (c).bit_xor (d), i, 1)
-				state.put (a.bit_xor (multiply (b, 0x02)).bit_xor (multiply (c, 0x03)).bit_xor (d), i, 2)
-				state.put (a.bit_xor (b).bit_xor (multiply (c, 0x02)).bit_xor (multiply (d, 0x03)), i, 3)
-				state.put (multiply (a, 0x03).bit_xor (b).bit_xor (c).bit_xor (multiply (d, 0x02)), i, 4)
+				state [i, 1] := multiply (a, 0x02).bit_xor (multiply (b, 0x03)).bit_xor (c).bit_xor (d)
+				state [i, 2] := a.bit_xor (multiply (b, 0x02)).bit_xor (multiply (c, 0x03)).bit_xor (d)
+				state [i, 3] := a.bit_xor (b).bit_xor (multiply (c, 0x02)).bit_xor (multiply (d, 0x03))
+				state [i, 4] := multiply (a, 0x03).bit_xor (b).bit_xor (c).bit_xor (multiply (d, 0x02))
 
 				i := i + 1
 			end
