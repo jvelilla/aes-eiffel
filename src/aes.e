@@ -13,6 +13,8 @@ note
 	EIS: "name=CTR", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29", "protocol=uri"
 	EIS: "name=CBC", "src=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29", "protocol=uri"
 	EIS: "name=AES-Documentation", "src=https://en.wikipedia.org/wiki/Advanced_Encryption_Standard", "protocol=uri"
+	EIS: "name=PKCS7", "src=https://en.wikipedia.org/wiki/Padding_(cryptography)#PKCS7", "protocol=uri"
+	EIS: "name=PKCS#7 ", "src=https://datatracker.ietf.org/doc/html/rfc5652#section-6.3", "protocol=uri"
 
 class
 	AES
@@ -89,14 +91,7 @@ feature -- String ECB encoding
 			buffer := converter.to_natural_8_array
 
 				-- Add PKCS7 padding
-			padding_length := aes_blocklen - (buffer.count \\ aes_blocklen)
-			from
-				buffer.grow (buffer.count + padding_length)
-			until
-				buffer.count \\ aes_blocklen = 0
-			loop
-				buffer.force (padding_length.to_natural_8, buffer.count + 1)
-			end
+			buffer := pkcs7_pad (buffer, aes_blocklen)
 
 			ecb_encrypt (buffer)
 
@@ -127,24 +122,9 @@ feature -- String ECB encoding
 			ecb_decrypt (buffer)
 
 				-- Remove PKCS7 padding
-			padding_length := buffer [buffer.count].to_integer_32
-			if padding_length > 0 and padding_length <= aes_blocklen then
-				buffer.remove_tail (padding_length)
-			end
+			buffer := pkcs7_unpad (buffer)
 
 			create Result.make_from_string (make_from_natural_8_array (buffer))
-
-			   -- Remove null characters from the end of the string
-            from
-                i := Result.count
-            until
-                i = 0 or else Result [i] /= '%U'
-            loop
-                i := i - 1
-            end
-            if i < Result.count then
-                Result.keep_head (i)
-            end
 		end
 
 feature -- String CBC encoding		
@@ -173,15 +153,7 @@ feature -- String CBC encoding
 			buffer := converter.to_natural_8_array
 
 				-- Add PKCS7 padding
-			padding_length := aes_blocklen - (buffer.count \\ aes_blocklen)
-			from
-				buffer.grow (buffer.count + padding_length)
-			until
-				buffer.count \\ aes_blocklen = 0
-			loop
-				buffer.force (padding_length.to_natural_8, buffer.count + 1)
-			end
-
+			buffer := pkcs7_pad (buffer, aes_blocklen)
 			cbc_encrypt_buffer (buffer)
 
 			create Result.make_from_string (make_from_natural_8_array (buffer))
@@ -214,24 +186,8 @@ feature -- String CBC encoding
 			cbc_decrypt_buffer (buffer)
 
 				-- Remove PKCS7 padding
-			padding_length := buffer [buffer.count].to_integer_32
-			if padding_length > 0 and padding_length <= aes_blocklen then
-				buffer.remove_tail (padding_length)
-			end
-
+			buffer := pkcs7_unpad (buffer)
 			create Result.make_from_string (make_from_natural_8_array (buffer))
-
-			   -- Remove null characters from the end of the string
-		    from
-		      	i := Result.count
-		    until
-		         i = 0 or else Result [i] /= '%U'
-		    loop
-		         i := i - 1
-		    end
-		    if i < Result.count then
-		      Result.keep_head (i)
-		    end
 		end
 
 feature -- String CTR encoding		
@@ -991,9 +947,88 @@ feature {NONE} -- Implementation
 			Result := l_bac.string
 		end
 
+
+feature {NONE} -- PKCS7 Padding
+
+    pkcs7_pad (data: ARRAY [NATURAL_8]; block_size: INTEGER): ARRAY [NATURAL_8]
+            -- Apply PKCS7 padding to the data
+            --| PKCS7 padding scheme:
+			--| When padding is applied, the value of each added byte is the number of bytes that are added.
+			--|	For example, if 3 bytes of padding are needed, the padding will be [0x03, 0x03, 0x03].
+			--| Last byte indicates padding length:
+			--| The last byte of the padded data always indicates how many padding bytes were added.
+			--| This is true even if the original data was already a multiple of the block size (in which case, a full block of padding is added).
+        require
+            valid_block_size: block_size > 0 and block_size <= 255
+        local
+            padding_length: INTEGER
+            i: INTEGER
+        do
+            padding_length := block_size - (data.count \\ block_size)
+            if padding_length = 0 then
+                padding_length := block_size
+            end
+
+            create Result.make_filled (0, 1, data.count + padding_length)
+            Result.subcopy (data, 1, data.count, 1)
+
+            from
+                i := data.count + 1
+            until
+                i > Result.count
+            loop
+                Result[i] := padding_length.to_natural_8
+                i := i + 1
+            end
+        ensure
+            correct_length: Result.count \\ block_size = 0
+            padded: Result.count >= data.count + 1
+        end
+
+    pkcs7_unpad (data: ARRAY [NATURAL_8]): ARRAY [NATURAL_8]
+            -- Remove PKCS7 padding from the data
+            --| Unpadding process:
+			--| Reads the last byte of the padded data.
+			--| Interprets this value as the number of padding bytes.
+			--| Verifies that all the padding bytes have the correct value.
+			--| Removes the specified number of bytes from the end of the data.
+        require
+            not_empty: data.count > 0
+        local
+            padding_length: INTEGER
+            i: INTEGER
+        do
+            padding_length := data.item (data.count).to_integer_32
+
+            if padding_length > 0 and padding_length <= data.count then
+                -- Verify padding
+                from
+                    i := data.count - padding_length + 1
+                until
+                    i > data.count or data.item (i).to_integer_32 /= padding_length
+                loop
+                    i := i + 1
+                end
+
+                if i > data.count then
+                    -- Padding is valid, remove it
+                    Result := data.subarray (1, data.count - padding_length)
+                else
+                    -- Invalid padding, return original data
+                    Result := data.twin
+                end
+            else
+                -- Invalid padding length, return original data
+                Result := data.twin
+            end
+        ensure
+            unpadded: Result.count <= data.count
+        end
+
 invariant
 	round_key_size_valid: round_key.count = parameters.key_exp_size
 	iv_size_valid: iv.count = aes_blocklen
 	iv_correct_size: iv.count = aes_blocklen
+
 
 end

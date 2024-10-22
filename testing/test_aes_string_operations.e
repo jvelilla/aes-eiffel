@@ -10,6 +10,7 @@ feature -- Test routines
 		local
 			aes: AES
 			key, plaintext, encrypted, decrypted: STRING_8
+			bc: BYTE_ARRAY_CONVERTER
 		do
 			create aes.make
 			key := "Sixteen byte key"
@@ -17,7 +18,9 @@ feature -- Test routines
 				-- Test case 1: Basic functionality
 			plaintext := "Hello, World!"
 			encrypted := aes.ecb_encoding_string (plaintext, key)
+			create bc.make_from_string (encrypted)
 			decrypted := aes.ecb_decoding_string (encrypted, key)
+
 			assert ("ECB decryption matches original", plaintext.is_equal (decrypted))
 
 				-- Test case 2: Empty string
