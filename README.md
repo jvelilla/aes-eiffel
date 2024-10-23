@@ -4,7 +4,7 @@ aes-eiffel is an Eiffel implementation of the Advanced Encryption Standard (AES)
 
 ## Features
 
-- Supports AES-128 encryption and decryption (AES-192 and AES-256 can be added with minor modifications)
+- Supports AES-128, AES-192 and AES-256 encryption and decryption.
 - Implements three modes of operation:
   - ECB (Electronic Codebook)
   - CBC (Cipher Block Chaining)
