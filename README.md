@@ -1,93 +1,71 @@
 # aes-eiffel
 
+aes-eiffel is an Eiffel implementation of the Advanced Encryption Standard (AES) algorithm, based on the [tiny-AES-c](https://github.com/kokke/tiny-AES-c) C implementation. This library provides a simple and efficient way to perform AES encryption and decryption in Eiffel applications.
 
+## Features
 
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/jvelilla/aes-eiffel.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.com/jvelilla/aes-eiffel/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+- Supports AES-128 encryption and decryption (AES-192 and AES-256 can be added with minor modifications)
+- Implements three modes of operation:
+  - ECB (Electronic Codebook)
+  - CBC (Cipher Block Chaining)
+  - CTR (Counter)
+- Provides string-based operations for easy encryption and decryption of text
+- Includes PKCS7 padding for block alignment
+- Designed for simplicity and ease of use
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+The library provides three main methods for each mode of operation:
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+1. ECB Mode:
+   - `ecb_encoding_string(plaintext, key): STRING`
+   - `ecb_decoding_string(ciphertext, key): STRING`
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+2. CBC Mode:
+   - `cbc_encoding_string(plaintext, key, iv): STRING`
+   - `cbc_decoding_string(ciphertext, key, iv): STRING`
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+3. CTR Mode:
+   - `ctr_encoding_string(plaintext, key, nonce): STRING`
+   - `ctr_decoding_string(ciphertext, key, nonce): STRING`
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Example usage:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```eiffel
 
-## License
-For open source projects, say how it is licensed.
+    local
+        aes: AES
+        key, plaintext, encrypted, decrypted: STRING
+    do
+        create aes.make
+        key := "Sixteen byte key"
+        plaintext := "Hello, World!"
+        encrypted := aes.ecb_encoding_string(plaintext, key)
+        decrypted := aes.ecb_decoding_string(encrypted, key)
+        check plaintext.is_equal(decrypted) end
+    end
+ ```   
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## Security Considerations
+
+- CTR (Counter) mode is generally considered more secure and preferable compared to ECB and CBC modes.[1][2]
+- ECB mode is the least secure and should be avoided for most use cases, especially for data larger than a single block.[3]
+- CTR mode offers advantages over CBC:
+  - Better performance on multi-core systems due to easier parallelization.[1]
+  - No risks associated with padding.[4]
+- Key security considerations:
+  - Proper key management is crucial for all modes.[5]
+  - CTR mode requires unique nonces (IVs) for each encryption operation.[6]
+  - For maximum security, authenticated encryption modes like GCM (which builds on CTR) are recommended.[7]
+- While CTR is generally more secure than CBC or ECB, combining CTR with a proper authentication mechanism or using an authenticated encryption mode like GCM is the most secure approach.[8]
+- Always use a secure method to generate keys and IVs/nonces.[9]
+
+[1]: https://crypto.stackexchange.com/questions/6029/aes-cbc-mode-or-aes-ctr-mode-recommended
+[2]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR)
+[3]: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_(ECB)
+[4]: https://crypto.stackexchange.com/questions/3883/why-is-cbc-mode-vulnerable-to-padding-oracle-attacks
+[5]: https://csrc.nist.gov/projects/key-management/cryptographic-key-management-systems
+[6]: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
+[7]: https://en.wikipedia.org/wiki/Galois/Counter_Mode
+[8]: https://www.cryptomathic.com/news-events/blog/advantages-of-authenticated-encryption-over-aes-cbc-mode
+[9]: https://csrc.nist.gov/publications/detail/sp/800-90a/rev-1/final
